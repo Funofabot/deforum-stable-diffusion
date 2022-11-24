@@ -147,8 +147,9 @@ def render_animation(args, anim_args, animation_prompts, root):
     predict_depths = (anim_args.animation_mode == '3D' and anim_args.use_depth_warping) or anim_args.save_depth_maps
     if predict_depths:
         depth_model = DepthModel(root.device)
-        depth_model.load_midas(root.models_path)
-        if anim_args.midas_weight < 1.0:
+         if anim_args.midas_weight >= 1.0:
+            depth_model.load_midas(root.models_path, root.half_precision)
+        else:
             depth_model.load_adabins(root.models_path)
     else:
         depth_model = None
@@ -198,7 +199,7 @@ def render_animation(args, anim_args, animation_prompts, root):
 
                 if depth_model is not None:
                     assert(turbo_next_image is not None)
-                    depth = depth_model.predict(turbo_next_image, anim_args)
+                    depth = depth_model.predict(turbo_next_image, anim_args, root.half_precision)
 
                 if advance_prev:
                     turbo_prev_image, _ = anim_frame_warp(turbo_prev_image, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device)
@@ -319,7 +320,7 @@ def render_animation(args, anim_args, animation_prompts, root):
             filename = f"{args.timestring}_{frame_idx:05}.png"
             image.save(os.path.join(args.outdir, filename))
             if anim_args.save_depth_maps:
-                depth = depth_model.predict(sample_to_cv2(sample), anim_args)
+                depth = depth_model.predict(sample_to_cv2(sample), anim_args, root.half_precision)
                 depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{frame_idx:05}.png"), depth)
             frame_idx += 1
 
