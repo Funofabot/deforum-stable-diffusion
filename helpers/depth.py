@@ -81,7 +81,7 @@ class DepthModel():
             self.midas_model = self.midas_model.half()
         self.midas_model.to(self.device)
 
-    def predict(self, prev_img_cv2, anim_args) -> torch.Tensor:
+    def predict(self, prev_img_cv2, anim_args, half_precision=True) -> torch.Tensor:
         w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
         # predict depth with AdaBins    
@@ -131,8 +131,9 @@ class DepthModel():
             # MiDaS depth estimation implementation
             sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
             if self.device == torch.device("cuda"):
-                sample = sample.to(memory_format=torch.channels_last)  
-                sample = sample.half()
+                sample = sample.to(memory_format=torch.channels_last)
+                if half_precision:
+                    sample = sample.half()
             with torch.no_grad():            
                 midas_depth = self.midas_model.forward(sample)
             midas_depth = torch.nn.functional.interpolate(
